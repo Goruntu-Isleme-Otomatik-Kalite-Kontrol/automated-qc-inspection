@@ -1,0 +1,10 @@
+paths:
+  input_dir: "data/golden_set"
+  output_dir: "outputs"
+
+preprocessing:
+  blur_kernel_size: 5
+
+inspection:
+  threshold_value: 100
+  min_defect_area_px: 150
