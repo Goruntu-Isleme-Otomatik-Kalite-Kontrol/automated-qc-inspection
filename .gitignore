@@ -1,6 +1,13 @@
+# Virtual environment & IDE
 .venv/
 .idea/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+
+# Ignore the large raw MVTec dataset, but keep data/golden_set/ tracked
 data/raw/
-outputs/
+
+# Ignore generated runtime outputs, EXCEPT the precomputed statistical reference cache
+outputs/*
+!outputs/reference_model.npz
