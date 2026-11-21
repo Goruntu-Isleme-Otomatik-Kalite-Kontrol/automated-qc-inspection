@@ -1,10 +1,13 @@
 paths:
   input_dir: "data/golden_set"
   output_dir: "outputs"
+  reference_dir: "data/raw/train/good"
 
 preprocessing:
-  blur_kernel_size: 5
+  blur_kernel_size: 9
+  bg_threshold: 210
 
 inspection:
-  threshold_value: 100
-  min_defect_area_px: 150
+  std_multiplier: 3.5
+  min_abs_diff: 25
+  min_defect_area_px: 250
