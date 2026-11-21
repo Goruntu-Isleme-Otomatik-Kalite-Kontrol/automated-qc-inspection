@@ -75,3 +75,15 @@ python -m src.evaluate
 | **Actual Defective** (`broken_large`, `broken_small`, `contamination`) | **61** (True Positive) | **2** (False Negative) | 63 |
 | **Actual Good** (`good`) | **5** (False Positive) | **15** (True Negative) | 20 |
 | **Total** | 66 | 17 | **83** |
+
+### Visual Ablation Proof (Why Earlier Methods Failed)
+
+| Method | Behavior on Defect-Free Bottle (`pass_02.png`) | Root Cause of Failure |
+| :--- | :--- | :--- |
+| **1. Global Thresholding** | Flags entire bottle silhouette as defect | High contrast between dark amber glass and white background |
+| **2. Canny Edges + ROI** | Flags normal circular neck rings & reflections | Concentric manufacturing grooves create strong intensity gradients |
+| **3. Single-Image Subtraction** | Flags crescent arcs around screw threads | Rotational variation between individual bottles on the conveyor |
+| **4. Centroid + Mean/Std Model** | **0 false-positive pixels** | High $\sigma$ in thread rings expands local tolerance automatically |
+
+![Ablation Comparison on Good Bottle](docs/images/ablation_pass_02.png)
+![Ablation Comparison on Defective Bottle](docs/images/ablation_fail_01.png)
