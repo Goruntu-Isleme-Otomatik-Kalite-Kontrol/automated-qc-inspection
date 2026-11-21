@@ -13,6 +13,7 @@ def get_statistical_reference(
     cache_path: str,
     kernel_size: int,
     bg_threshold: int,
+    color_space: str = "gray",
     use_cache: bool = True,
 ) -> tuple[np.ndarray, np.ndarray]:
     cache_file = Path(cache_path)
@@ -22,7 +23,7 @@ def get_statistical_reference(
 
     stack = []
     for _, img in load_images(ref_dir):
-        processed = preprocess_image(img, kernel_size, bg_threshold)
+        processed = preprocess_image(img, kernel_size, bg_threshold, color_space)
         stack.append(processed.astype(np.float32))
 
     if not stack:
@@ -47,12 +48,14 @@ def run_pipeline(
 
     prep_cfg = cfg["preprocessing"]
     insp_cfg = cfg["inspection"]
+    color_space = prep_cfg.get("color_space", "gray")
 
     mean_img, std_img = get_statistical_reference(
         cfg["paths"]["reference_dir"],
         cfg["paths"]["reference_cache"],
         prep_cfg["blur_kernel_size"],
         prep_cfg["bg_threshold"],
+        color_space=color_space,
     )
 
     target_dir = input_dir_override or cfg["paths"]["input_dir"]
@@ -62,7 +65,10 @@ def run_pipeline(
 
     for filename, image in load_images(target_dir):
         processed = preprocess_image(
-            image, prep_cfg["blur_kernel_size"], prep_cfg["bg_threshold"]
+            image,
+            prep_cfg["blur_kernel_size"],
+            prep_cfg["bg_threshold"],
+            color_space=color_space,
         )
         is_defective, boxes = detect_defects(
             processed,

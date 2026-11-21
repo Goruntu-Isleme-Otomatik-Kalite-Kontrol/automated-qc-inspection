@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 import yaml
 from src.pipeline import run_pipeline
@@ -53,7 +54,8 @@ def evaluate_full_dataset(config_path: str = "configs/default.yaml") -> dict:
     recall = tp / (tp + fn) if (tp + fn) else 0.0
     f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
 
-    print("\n=== Per-Category Breakdown ===")
+    print(f"\n=== Evaluation Results ({config_path}) ===")
+    print("=== Per-Category Breakdown ===")
     for cat, stats in category_stats.items():
         print(f"  {cat:<15}: {stats['correct']}/{stats['total']} ({stats['accuracy']:.1f}%)")
 
@@ -82,4 +84,9 @@ def evaluate_full_dataset(config_path: str = "configs/default.yaml") -> dict:
 
 
 if __name__ == "__main__":
-    evaluate_full_dataset()
+    parser = argparse.ArgumentParser(description="Evaluate QC Inspection Pipeline")
+    parser.add_argument(
+        "--config", default="configs/default.yaml", help="Path to YAML config"
+    )
+    args = parser.parse_args()
+    evaluate_full_dataset(config_path=args.config)

@@ -11,3 +11,4 @@ data/raw/
 # Ignore generated runtime outputs, EXCEPT the precomputed statistical reference cache
 outputs/*
 !outputs/reference_model.npz
+!outputs/reference_model_lab.npz

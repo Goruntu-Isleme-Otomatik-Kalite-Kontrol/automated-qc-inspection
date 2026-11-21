@@ -9,6 +9,7 @@ paths:
 preprocessing:
   blur_kernel_size: 9
   bg_threshold: 210
+  color_space: "gray"
 
 inspection:
   std_multiplier: 2.8
