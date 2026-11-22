@@ -1,0 +1,17 @@
+paths:
+  input_dir: "data/golden_set"
+  output_dir: "outputs"
+  reference_dir: "data/raw/train/good"
+  reference_cache: "outputs/reference_model.npz"
+  report_csv: "outputs/report.csv"
+  test_root_dir: "data/raw/test"
+
+preprocessing:
+  blur_kernel_size: 9
+  bg_threshold: 210
+  color_space: "gray"
+
+inspection:
+  std_multiplier: 2.8
+  min_abs_diff: 25
+  min_defect_area_px: 150
