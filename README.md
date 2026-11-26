@@ -84,8 +84,9 @@ The platform was developed iteratively across three distinct architectural miles
   $$(x_{\text{orig}}, y_{\text{orig}}) = (x_{\text{pred}} - \Delta x, \; y_{\text{pred}} - \Delta y)$$
 
 * **Patch-Level Anomaly Scoring:**
-  Each extracted spatial feature vector $\mathbf{f}_i$ is L2-normalized onto the unit hypersphere ($\hat{\mathbf{f}}_i = \mathbf{f}_i / \Vert{}\mathbf{f}_i\Vert{}_2$) and scored by its minimum Euclidean distance to the defect-free reference memory bank $\mathcal{M}$:
-  $$s_i = \min_{\mathbf{m} \in \mathcal{M}} \Vert{}\hat{\mathbf{f}}_i - \mathbf{m}\Vert{}_2$$
+  Each extracted spatial feature vector $`f_i`$ is L2-normalized onto the unit hypersphere ($`\hat{\mathbf{f}}_i = \mathbf{f}_i / \|\mathbf{f}_i\|_2`$) and scored by its minimum Euclidean distance to the defect-free reference memory bank $`\mathcal{M}`$:
+
+  $$s_i = \min_{\mathbf{m} \in \mathcal{M}} \|\hat{\mathbf{f}}_i - \mathbf{m}\|_2$$
 
 * **Out-of-Distribution (`INVALID`) Protection:**
   To prevent unrelated or out-of-category images from triggering false `PASS` or `FAIL` decisions, four threshold-independent guardrails are enforced: peak anomaly score ($\max(S) > 0.98$), 90th-percentile heatmap distribution ($P_{90}(S) > 0.78$), Otsu foreground occupancy ($\notin [0.10, 0.80]$), and geometric aspect ratio deviation ($> 0.25$).
