@@ -1,10 +1,10 @@
 paths:
   input_dir: "data/golden_set"
   output_dir: "outputs"
-  reference_dir: "data/raw/train/good"
+  reference_dir: "data/raw/bottle/train/good"
   reference_cache: "outputs/reference_model_lab.npz"
   report_csv: "outputs/report_lab.csv"
-  test_root_dir: "data/raw/test"
+  test_root_dir: "data/raw/bottle/test"
 
 preprocessing:
   blur_kernel_size: 9

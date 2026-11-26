@@ -12,3 +12,4 @@ data/raw/
 outputs/*
 !outputs/reference_model.npz
 !outputs/reference_model_lab.npz
+data/cache/

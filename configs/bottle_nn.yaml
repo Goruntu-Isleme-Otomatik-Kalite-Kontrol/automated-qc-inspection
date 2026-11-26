@@ -1,0 +1,23 @@
+model:
+  type: "nn_resnet"
+  max_patches: 15000
+
+paths:
+  reference_dir: "data/raw/bottle/train/good"
+  reference_cache: "data/cache/bottle_nn_bank.npz"
+  input_dir: "data/raw/bottle/test/scratch"
+  output_dir: "results/bottle_nn"
+  report_csv: "results/bottle_nn/report.csv"
+  test_root_dir: "data/raw/bottle/test"
+  ground_truth_dir: "data/raw/bottle/ground_truth"
+
+preprocessing:
+  blur_kernel_size: 9
+  bg_mode: "auto"
+  use_clahe: false
+  target_size: [224, 224]
+
+inspection:
+  anomaly_threshold: 0.50
+  min_defect_area_px: 120
+  morph_kernel_size: 5

@@ -1,0 +1,23 @@
+model:
+  type: "nn_resnet"
+  max_patches: 15000
+
+paths:
+  reference_dir: "data/raw/hazelnut/train/good"
+  reference_cache: "data/cache/hazelnut_nn_bank.npz"
+  input_dir: "data/raw/hazelnut/test/scratch"
+  output_dir: "results/hazelnut_nn"
+  report_csv: "results/hazelnut_nn/report.csv"
+  test_root_dir: "data/raw/hazelnut/test"
+  ground_truth_dir: "data/raw/hazelnut/ground_truth"
+
+preprocessing:
+  blur_kernel_size: 9
+  bg_mode: "auto"
+  use_clahe: false
+  target_size: [224, 224]
+
+inspection:
+  anomaly_threshold: 0.72
+  min_defect_area_px: 120
+  morph_kernel_size: 5

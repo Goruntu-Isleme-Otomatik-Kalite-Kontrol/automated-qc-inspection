@@ -1,0 +1,22 @@
+paths:
+  input_dir: "data/raw/metal_nut/test/good"
+  output_dir: "results/metal_nut_cv"
+  reference_dir: "data/raw/metal_nut/train/good"
+  reference_cache: "data/cache/metal_nut_cv_ref.npz"
+  report_csv: "results/metal_nut_cv/report.csv"
+  test_root_dir: "data/raw/metal_nut/test"
+  ground_truth_dir: "data/raw/metal_nut/ground_truth"
+
+preprocessing:
+  blur_kernel_size: 9
+  bg_threshold: 210
+  color_space: "lab"
+  bg_mode: "auto"
+
+inspection:
+  std_multiplier: 3.1
+  min_abs_diff: 22
+  min_defect_area_px: 160
+
+model:
+  type: "statistical_cv"

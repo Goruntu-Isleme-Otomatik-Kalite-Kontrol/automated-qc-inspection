@@ -1,0 +1,22 @@
+paths:
+  input_dir: "data/raw/bottle/test/good"
+  output_dir: "results/bottle_cv"
+  reference_dir: "data/raw/bottle/train/good"
+  reference_cache: "data/cache/bottle_cv_ref.npz"
+  report_csv: "results/bottle_cv/report.csv"
+  test_root_dir: "data/raw/bottle/test"
+  ground_truth_dir: "data/raw/bottle/ground_truth"
+
+preprocessing:
+  blur_kernel_size: 9
+  bg_threshold: 210
+  color_space: "lab"
+  bg_mode: "auto"
+
+inspection:
+  std_multiplier: 3.1
+  min_abs_diff: 22
+  min_defect_area_px: 160
+
+model:
+  type: "statistical_cv"

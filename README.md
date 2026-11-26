@@ -1,95 +1,188 @@
-# Automated Visual Quality Control Inspection (MVTec AD — Bottle)
+<div align="center">
 
-Modular classical computer vision pipeline for automated industrial defect detection on overhead glass bottle images from the **MVTec Anomaly Detection (MVTec AD)** dataset. Supports both single-channel **Grayscale** and 3-channel **CIE LAB** statistical reference modeling, built with Python, OpenCV, NumPy, and `pytest` using an iterative Agile workflow.
+# 🔍 Industrial Automated Visual Quality Control System
+
+**Real-Time Surface Defect Detection & Industrial HMI Platform Combining Classical Statistical Computer Vision (CIE LAB) and Hybrid Deep Learning (Patch Memory Bank)**
+
+![Domain](https://img.shields.io/badge/Domain-Industrial_Computer_Vision-0EA5E9?style=flat-square)
+![Dataset](https://img.shields.io/badge/Dataset-MVTec_Anomaly_Detection-1E293B?style=flat-square)
+![Architecture](https://img.shields.io/badge/Architecture-CIE_LAB_%2B_ResNet--18-0284C7?style=flat-square)
+![Interface](https://img.shields.io/badge/Interface-Streamlit_HMI-334155?style=flat-square)
+
+</div>
 
 ---
 
-## 1. Pipeline Architecture
+## 📌 Overview
+
+An end-to-end visual quality control platform engineered for manufacturing lines where only **defect-free (*good*)** reference samples are available during calibration and defect morphologies are unknown in advance (*unsupervised anomaly detection*).
+
+The system unifies two distinct computer vision paradigms under a single preprocessing, evaluation, and diagnostic pipeline:
+
+| Paradigm | Core Methodology | Primary Advantage | Optimal Use Case |
+| :--- | :--- | :--- | :--- |
+| **Classical Statistical CV (`_cv`)** | Pixel-wise statistical modeling ($\mu \pm k\sigma$) in the CIE LAB color space with morphological filtering | Ultra-low latency (~61 FPS) and zero neural network overhead | Uniform textures under controlled industrial lighting |
+| **Hybrid Deep Learning (`_nn`)** | OpenCV geometric normalization + multi-scale ResNet-18 L2-normalized Patch Memory Bank | High generalization across specular metallic reflections and complex textures | High-variance surfaces and subtle structural anomalies |
+
+---
+
+## 🚀 Release Milestones & Scope (`v1.0.0` → `v2.0.0`)
+
+The platform was developed iteratively across three distinct architectural milestones:
+
+| Version | Release Stage | Scope & Key Deliverables |
+| :--- | :--- | :--- |
+| **`v1.0.0`** | **Grayscale Statistical Baseline** | • Single-channel pixel mean and standard deviation ($\mu \pm k\sigma$) reference modeling.<br>• Otsu automatic background segmentation and morphological noise suppression (`cv2.MORPH_OPEN` / `MORPH_ELLIPSE`).<br>• Core `pytest` unit test suite and CLI evaluation baseline. |
+| **`v1.1.0`** | **Multi-Channel CIE LAB Color Modeling** | • Migration from single-channel grayscale to 3-channel **CIE LAB** color space to decouple luminance ($L^*$) fluctuations from chromatic ($a^*, b^*$) surface defects.<br>• Modular YAML configuration architecture (`configs/*.yaml`) per product category.<br>• Full-dataset evaluation pipeline generating F1-score, IoU, and throughput metrics. |
+| **`v2.0.0`** | **Hybrid ResNet-18 & Industrial HMI** | • Integration of pre-trained **ResNet-18** (`layer2` + `layer3`) spatial patch feature extraction with an L2-normalized **Patch Memory Bank**, boosting `metal_nut` F1-score by **+29.28%**.<br>• Inverse affine coordinate alignment (`-dx, -dy`) mapping centered predictions back to raw image pixel coordinates.<br>• Multi-criteria Out-of-Distribution (**OOD / `INVALID`**) guard rejecting non-target objects.<br>• Dark-themed **Streamlit HMI** with side-by-side method comparison, live Ground Truth IoU/Dice verification, and `.png`/`.json` traceability export. |
+
+---
+
+## 🏗️ System Architecture
 
 ```text
-data/golden_set/ ──► acquisition.py ──► preprocessing.py ──► inspection.py ──► postprocessing.py
-                                              │                     ▲                  │
-                                              ▼                     │                  ▼
-                                    Centroid Alignment      Statistical Model    Annotated Images
-                                    (cv2.moments + Warp)   (mean ± k*std .npz)   + outputs/report.csv
+                      ┌──────────────────────────────────┐
+                      │      Raw Input Image (BGR)       │
+                      └────────────────┬─────────────────┘
+                                       │
+                                       ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 1. Preprocessing & Geometric Normalization (src/preprocessing.py)            │
+│    • Gaussian Blur sensor noise suppression                                  │
+│    • Otsu thresholding & corner pixel analysis for foreground segmentation   │
+│    • Image moments (cv2.moments) centroid alignment shift (dx, dy)           │
+└──────────────────────────────────────┬───────────────────────────────────────┘
+                                       │
+                  ┌────────────────────┴────────────────────┐
+                  ▼                                         ▼
+┌───────────────────────────────────┐     ┌────────────────────────────────────┐
+│ Classical Statistical Track (_cv) │     │ Hybrid Deep Learning Track (_nn)   │
+│ • CIE LAB Reference Model (μ, σ)  │     │ • ResNet-18 Mid-Layer Features     │
+│ • Pixel Difference Map |I - μ|    │     │ • L2-Normalized Patch Memory Bank  │
+│ • Adaptive Thresholding (> k·σ)   │     │ • Nearest-Neighbor Euclidean Dist. │
+└─────────────────┬─────────────────┘     └─────────────────┬──────────────────┘
+                  └────────────────────┬────────────────────┘
+                                       │
+                                       ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 2. Post-Processing, Inverse Alignment & OOD Guard (app.py / inspection.py)   │
+│    • Morphological opening/closing & minimum contour area filtering          │
+│    • Inverse affine transform (-dx, -dy) for pixel-exact box/heatmap overlay │
+│    • Multi-criteria Out-of-Distribution (INVALID) rejection gate             │
+└──────────────────────────────────────┬───────────────────────────────────────┘
+                                       │
+                                       ▼
+                 ┌────────────────────────────────────────────┐
+                 │  Final Decision:  PASS  |  FAIL  | INVALID │
+                 │  Anomaly Heatmap • Bounding Boxes • JSON   │
+                 └────────────────────────────────────────────┘
 ```
 
-* **`configs/default.yaml` & `configs/color_lab.yaml`**: Centralize directory paths, preprocessing parameters (`gray` vs. `lab`), and adaptive statistical thresholds.
-* **`src/acquisition.py`**: Loads input images deterministically from target directories.
-* **`src/preprocessing.py`**: Segments the bottle silhouette via Gaussian smoothing and inverse binary thresholding, computes the centroid (`cv2.moments`), and applies affine translation (`cv2.warpAffine`) to align every bottle to the frame center in either 1-channel Grayscale or 3-channel `CIE LAB`.
-* **`src/inspection.py`**: Compares each aligned sample against a pixel-wise statistical golden model ($\mu \pm (k\sigma + \text{offset})$) learned from 200 normal training samples, collapsing 3-channel color deviations across `L`, `a`, and `b` before morphological opening and contour area filtering.
-* **`src/postprocessing.py`**: Draws defect bounding boxes and `PASS` / `FAIL` status overlays onto output images.
-* **`src/pipeline.py`**: Orchestrates end-to-end batch inspection, caches statistical reference models (`outputs/reference_model.npz` and `outputs/reference_model_lab.npz`), and exports structured CSV audit logs.
-* **`src/evaluate.py`**: Benchmarks classification performance (`Accuracy`, `Precision`, `Recall`, `F1-Score`, and Confusion Matrix) across all 83 MVTec test samples (`broken_large`, `broken_small`, `contamination`, `good`).
-* **`experiments/ablation_study.py`**: Reproduces visual failure-mode comparisons across earlier baseline methods.
+<details>
+<summary><b>📐 Mathematical Formulation & Decision Logic (Click to expand)</b></summary>
+<br>
+
+* **Centroid Alignment & Inverse Coordinate Mapping:**
+  During preprocessing, the foreground binary mask $M(x,y)$ is used to compute the object centroid $(c_x, c_y)$ and shift the object to the frame center ($\Delta x = \frac{W}{2} - c_x, \; \Delta y = \frac{H}{2} - c_y$). Post-inference, predicted bounding boxes and anomaly heatmaps are shifted back via an inverse affine transformation to align pixel-for-pixel with the raw input frame:
+  $$(x_{\text{orig}}, y_{\text{orig}}) = (x_{\text{pred}} - \Delta x, \; y_{\text{pred}} - \Delta y)$$
+
+* **Patch-Level Anomaly Scoring:**
+  Each extracted spatial feature vector $\mathbf{f}_i$ is L2-normalized onto the unit hypersphere ($\hat{\mathbf{f}}_i = \mathbf{f}_i / \Vert{}\mathbf{f}_i\Vert{}_2$) and scored by its minimum Euclidean distance to the defect-free reference memory bank $\mathcal{M}$:
+  $$s_i = \min_{\mathbf{m} \in \mathcal{M}} \Vert{}\hat{\mathbf{f}}_i - \mathbf{m}\Vert{}_2$$
+
+* **Out-of-Distribution (`INVALID`) Protection:**
+  To prevent unrelated or out-of-category images from triggering false `PASS` or `FAIL` decisions, four threshold-independent guardrails are enforced: peak anomaly score ($\max(S) > 0.98$), 90th-percentile heatmap distribution ($P_{90}(S) > 0.78$), Otsu foreground occupancy ($\notin [0.10, 0.80]$), and geometric aspect ratio deviation ($> 0.25$).
+
+</details>
 
 ---
 
-## 2. Quickstart
+## 📊 6-Way Benchmark Results & Performance Analysis
 
-### Setup Environment
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+Evaluations were conducted across three industrial categories from the **MVTec Anomaly Detection** dataset (`bottle`, `metal_nut`, `hazelnut`), calibrated strictly on defect-free training samples.
+
+| Configuration | Paradigm | Category | F1-Score (%) | Latency (ms/image) | Throughput (FPS) |
+| :--- | :---: | :--- | :---: | :---: | :---: |
+| `bottle_cv` | Classical CIE LAB | Bottle (`bottle`) | 95.0%+ | ~16.2 ms | ~61.7 |
+| **`bottle_nn`** | **Hybrid ResNet-18** | **Bottle (`bottle`)** | **98.4%+** | **~24.5 ms** | **~40.8** |
+| `metal_nut_cv` | Classical CIE LAB | Metal Nut (`metal_nut`) | 64.43% | ~16.5 ms | ~60.6 |
+| **`metal_nut_nn`** | **Hybrid ResNet-18** | **Metal Nut (`metal_nut`)** | **93.71%** | **~27.8 ms** | **~36.0** |
+| `hazelnut_cv` | Classical CIE LAB | Hazelnut (`hazelnut`) | 89.8%+ | ~16.4 ms | ~61.0 |
+| **`hazelnut_nn`** | **Hybrid ResNet-18** | **Hazelnut (`hazelnut`)** | **94.0%+** | **~26.9 ms** | **~37.2** |
+
+### Key Engineering Takeaways
+* **Substantial Gain on Specular Metallic Surfaces:** While classical pixel differencing performs reliably on uniform backgrounds (`bottle`), metallic reflections and rotational variance in `metal_nut` degrade classical performance to `64.43%` F1. The hybrid patch memory bank achieves **`93.71%` F1** (**+29.28% improvement**).
+* **Real-Time Conveyor Throughput:** Running at **~25–28 ms per frame (36–41 FPS)**, the hybrid pipeline satisfies real-time inline inspection constraints without sacrificing localization precision.
+
+---
+
+## 🔬 Empirical Failure Analysis & Trade-offs
+
+* **Sensitivity vs. False-Alarm Trade-off (`metal_nut / color / 004.png`):**
+  A micro-scale paint blemish along the inner bore of the metal nut registered an anomaly peak of `0.767` (exceeding the `0.72` threshold) and localized accurately on the heatmap. However, because its connected pixel area fell below `min_defect_area_px` (`120 px`) and was suppressed by morphological opening, the final classification returned `PASS`. Maintaining a conservative threshold (`0.72`) and minimum area filter prevents specular metallic glare on intact nuts from triggering false positives, stabilizing overall accuracy at **90.43%** while leaving sub-threshold micro-stains at the sensitivity boundary.
+* **Pixel-Exact Coordinate Alignment (`hazelnut / cut / 014.png`):**
+  Centroid shifting during preprocessing initially introduced a `15–25 px` spatial offset between detected bounding boxes and raw defect locations. Incorporating `compute_centering_shift` and inverse `cv2.warpAffine` mapping eliminated this discrepancy across both tracks.
+
+---
+
+## 🖥️ Industrial HMI Interface
+
+The Streamlit diagnostic workstation (`app.py`) provides an operator-ready inspection environment:
+
+* **Live Inspection & Visual Diagnostics:** Inspect MVTec test samples by defect category or upload external images for instant anomaly scoring and heatmap generation.
+* **Side-by-Side Paradigm Comparison:** Toggle simultaneous evaluation to compare Classical CV and Hybrid AI outputs on the same sample in a single view.
+* **Ground Truth Overlay & Live IoU / Dice:** Automatically loads MVTec pixel masks, renders green defect contours, and computes real-time sample-level IoU and Dice scores.
+* **Dynamic Threshold & Heatmap Alpha Controls:** Adjust decision sensitivity and heatmap overlay opacity (`0.0` – `1.0`) in real time.
+* **Inspection Traceability Export:** Download annotated inspection images (`.png`) alongside timestamped audit logs (`.json`) containing bounding box coordinates, anomaly scores, and latency metrics.
+
+---
+
+## ⚡ Installation & Usage
+
+### 1. Environment Setup
+```bash
+git clone [https://github.com/UygarHfz/Goruntu-Isleme-Otomatik-Kalite-Kontrol.git](https://github.com/UygarHfz/Goruntu-Isleme-Otomatik-Kalite-Kontrol.git)
+cd Goruntu-Isleme-Otomatik-Kalite-Kontrol
 pip install -r requirements.txt
 ```
 
-### Run Automated Tests
-```powershell
-pytest
+### 2. Run Automated Verification Tests
+```bash
+pytest -v
 ```
 
-### Run Batch Inspection (Golden Set + CSV Report)
-```powershell
-# Default Grayscale Safety-First Model
-python main.py --config configs/default.yaml
-
-# 3-Channel CIE LAB Color Model
-python main.py --config configs/color_lab.yaml
+### 3. Generate Reference Caches & 6-Way Benchmark Report
+```bash
+python -m src.evaluate --all
 ```
 
-### Run Full MVTec Test-Set Benchmark (83 Images)
-*(Requires full MVTec `bottle` dataset extracted under `data/raw/`)*
-```powershell
-python -m src.evaluate --config configs/default.yaml
-python -m src.evaluate --config configs/color_lab.yaml
+### 4. Launch the Industrial HMI Dashboard
+```bash
+streamlit run app.py
 ```
 
 ---
 
-## 3. Iterative Engineering Evolution & Benchmark Results
+## 📂 Repository Structure
 
-1. **Global Thresholding (Sprint 1):** Failed by flagging the entire dark amber bottle body against the white background.
-2. **Canny Edge Detection + Eroded ROI:** Failed due to false positives on normal concentric bottle neck rings and specular reflections.
-3. **Single-Reference Subtraction:** Failed due to rotational variance of bottle screw threads.
-4. **Centroid-Aligned Grayscale Statistical Model (`v1.0.0`):** Solved rotational variance by modeling pixel-wise mean ($\mu$) and standard deviation ($\sigma$) across 200 aligned normal training bottles.
-5. **3-Channel CIE LAB Statistical Model (`v1.1.0`):** Extended pixel-wise modeling to 3D `(H, W, 3)` `CIE LAB` space, separating chromatic shifts (`a`, `b`) from luminance (`L`) to eliminate false alarms at high defect recall.
-
-### Model & Hyperparameter Comparison (83 Test Samples)
-
-| Configuration & Color Space | Parameters (`std` / `diff` / `area`) | `broken_large` | `broken_small` | `contamination` | `good` | Accuracy | Precision | Recall | F1-Score |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Grayscale — Conservative** | `3.5 / 25 / 250` | 20/20 (100%) | 21/22 (95.5%) | 16/21 (76.2%) | **20/20 (100%)** | 92.77% | **100.00%** | 90.48% | 95.00% |
-| **Grayscale — Safety-First (`default.yaml`)** | `2.8 / 25 / 150` | **20/20 (100%)** | **22/22 (100%)** | **19/21 (90.5%)** | 14/20 (70.0%) | 90.36% | 91.04% | **96.83%** | 93.85% |
-| **CIE LAB — High-Precision** | `3.2 / 25 / 180` | **20/20 (100%)** | 21/22 (95.5%) | 18/21 (85.7%) | 19/20 (95.0%)| **93.98%** | 98.33% | 93.65% | **95.93%** |
-| **CIE LAB — Safety-First (`color_lab.yaml`)** | `3.1 / 22 / 160` | **20/20 (100%)** | **22/22 (100%)** | **19/21 (90.5%)** | 16/20 (80.0%) | 92.77% | 93.85% | **96.83%** | 95.31% |
-
-### Confusion Matrix — Active CIE LAB Safety-First Model (`configs/color_lab.yaml`)
-
-| Ground Truth \ Prediction | Predicted `FAIL` (Defective) | Predicted `PASS` (Good) | Total |
-| :--- | :---: | :---: | :---: |
-| **Actual Defective** (`broken_large`, `broken_small`, `contamination`) | **61** (True Positive) | **2** (False Negative)| 63|
-| **Actual Good** (`good`) | **4** (False Positive) | **16** (True Negative) | 20 |
-| **Total** | 65 | 18 | **83** |
-
-### Visual Ablation Proof (Why Earlier Methods Failed)
-
-| Method | Behavior on Defect-Free Bottle (`pass_02.png`) | Root Cause of Failure |
-| :--- | :--- | :--- |
-| **1. Global Thresholding** | Flags entire bottle silhouette as defect | High contrast between dark amber glass and white background |
-| **2. Canny Edges + ROI** | Flags normal circular neck rings & reflections | Concentric manufacturing grooves create strong intensity gradients |
-| **3. Single-Image Subtraction** | Flags crescent arcs around screw threads | Rotational variation between individual bottles on the conveyor |
-| **4. Centroid + Mean/Std Model** | **0 false-positive pixels** | High $\sigma$ in thread rings expands local tolerance automatically |
-
-![Ablation Comparison on Good Bottle](docs/images/ablation_pass_02.png)
-![Ablation Comparison on Defective Bottle](docs/images/ablation_fail_01.png)
+```text
+├── .streamlit/
+│   └── config.toml             # Industrial dark theme configuration
+├── configs/
+│   ├── bottle_cv.yaml          # Bottle — Classical CIE LAB configuration
+│   ├── bottle_nn.yaml          # Bottle — Hybrid ResNet-18 configuration
+│   ├── metal_nut_cv.yaml       # Metal Nut — Classical CIE LAB configuration
+│   ├── metal_nut_nn.yaml       # Metal Nut — Hybrid ResNet-18 configuration
+│   ├── hazelnut_cv.yaml        # Hazelnut — Classical CIE LAB configuration
+│   └── hazelnut_nn.yaml        # Hazelnut — Hybrid ResNet-18 configuration
+├── src/
+│   ├── preprocessing.py        # Foreground segmentation & centroid alignment
+│   ├── inspection.py           # Classical statistical defect detection
+│   ├── nn_detector.py          # ResNet-18 patch memory bank inference engine
+│   └── evaluate.py             # Multi-configuration benchmark & metrics pipeline
+├── tests/                      # Automated unit & integration test suite
+├── results/                    # Benchmark CSV summaries & reference caches
+├── app.py                      # Streamlit HMI diagnostic application
+├── requirements.txt            # Project dependencies
+└── README.md                   # Project documentation
+```
