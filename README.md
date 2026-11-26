@@ -4,10 +4,10 @@
 
 **Real-Time Surface Defect Detection & Industrial HMI Platform Combining Classical Statistical Computer Vision (CIE LAB) and Hybrid Deep Learning (Patch Memory Bank)**
 
-![Domain](https://img.shields.io/badge/Domain-Industrial_Computer_Vision-0EA5E9?style=flat-square)
-![Dataset](https://img.shields.io/badge/Dataset-MVTec_Anomaly_Detection-1E293B?style=flat-square)
-![Architecture](https://img.shields.io/badge/Architecture-CIE_LAB_%2B_ResNet--18-0284C7?style=flat-square)
-![Interface](https://img.shields.io/badge/Interface-Streamlit_HMI-334155?style=flat-square)
+![Domain](https://img.shields.io/static/v1?label=Domain&message=Industrial%20Computer%20Vision&color=0EA5E9&style=flat-square)
+![Dataset](https://img.shields.io/static/v1?label=Dataset&message=MVTec%20Anomaly%20Detection&color=1E293B&style=flat-square)
+![Architecture](https://img.shields.io/static/v1?label=Architecture&message=CIE%20LAB%20%2B%20ResNet-18&color=0284C7&style=flat-square)
+![Interface](https://img.shields.io/static/v1?label=Interface&message=Streamlit%20HMI&color=334155&style=flat-square)
 
 </div>
 
