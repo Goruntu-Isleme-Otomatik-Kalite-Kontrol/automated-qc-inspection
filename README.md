@@ -174,9 +174,13 @@ streamlit run app.py
 │   ├── hazelnut_cv.yaml        # Hazelnut — Classical CIE LAB configuration
 │   └── hazelnut_nn.yaml        # Hazelnut — Hybrid ResNet-18 configuration
 ├── src/
+│   ├── __init__.py             # Package initialization
+│   ├── acquisition.py          # Image loading & dataset input ingestion
 │   ├── preprocessing.py        # Foreground segmentation & centroid alignment
-│   ├── inspection.py           # Classical statistical defect detection
+│   ├── inspection.py           # Classical statistical defect detection (CIE LAB)
 │   ├── nn_detector.py          # ResNet-18 patch memory bank inference engine
+│   ├── postprocessing.py       # Morphological filtering, contour extraction & inverse alignment
+│   ├── pipeline.py             # End-to-end inspection orchestrator & PASS/FAIL decision logic
 │   └── evaluate.py             # Multi-configuration benchmark & metrics pipeline
 ├── tests/                      # Automated unit & integration test suite
 ├── results/                    # Benchmark CSV summaries & reference caches
