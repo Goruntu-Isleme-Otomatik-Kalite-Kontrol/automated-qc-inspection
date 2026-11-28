@@ -18,7 +18,7 @@ The system unifies two distinct computer vision paradigms under a single preproc
 
 | Paradigm | Core Methodology | Primary Advantage | Optimal Use Case |
 | :--- | :--- | :--- | :--- |
-| **Classical Statistical CV (`_cv`)** | Pixel-wise statistical modeling ($\mu \pm k\sigma$) in the CIE LAB color space with morphological filtering | Ultra-low latency (~61 FPS) and zero neural network overhead | Uniform textures under controlled industrial lighting |
+| **Classical Statistical CV (`_cv`)** | Pixel-wise statistical modeling ($\mu \pm k\sigma$) in the CIE LAB color space with morphological filtering | Lightweight and interpretable — no neural network or GPU required | Uniform textures under controlled industrial lighting |
 | **Hybrid Deep Learning (`_nn`)** | OpenCV geometric normalization + multi-scale ResNet-18 L2-normalized Patch Memory Bank | High generalization across specular metallic reflections and complex textures | High-variance surfaces and subtle structural anomalies |
 
 ---
@@ -31,7 +31,7 @@ The platform was developed iteratively across three distinct architectural miles
 | :--- | :--- | :--- |
 | **`v1.0.0`** | **Grayscale Statistical Baseline** | • Single-channel pixel mean and standard deviation ($\mu \pm k\sigma$) reference modeling.<br>• Otsu automatic background segmentation and morphological noise suppression (`cv2.MORPH_OPEN` / `MORPH_ELLIPSE`).<br>• Core `pytest` unit test suite and CLI evaluation baseline. |
 | **`v1.1.0`** | **Multi-Channel CIE LAB Color Modeling** | • Migration from single-channel grayscale to 3-channel **CIE LAB** color space to decouple luminance (L<sup>&#42;</sup>) fluctuations from chromatic (a<sup>&#42;</sup>, b<sup>&#42;</sup>) surface defects.<br>• Modular YAML configuration architecture (`configs/*.yaml`) per product category.<br>• Full-dataset evaluation pipeline generating F1-score, IoU, and throughput metrics. |
-| **`v2.0.0`** | **Hybrid ResNet-18 & Industrial HMI** | • Integration of pre-trained **ResNet-18** (`layer2` + `layer3`) spatial patch feature extraction with an L2-normalized **Patch Memory Bank**, boosting `metal_nut` F1-score by **+29.28%**.<br>• Inverse affine coordinate alignment (`-dx, -dy`) mapping centered predictions back to raw image pixel coordinates.<br>• Multi-criteria Out-of-Distribution (**OOD / `INVALID`**) guard rejecting non-target objects.<br>• Dark-themed **Streamlit HMI** with side-by-side method comparison, live Ground Truth IoU/Dice verification, and `.png`/`.json` traceability export. |
+| **`v2.0.0`** | **Hybrid ResNet-18 & Industrial HMI** | • Integration of pre-trained **ResNet-18** (`layer2` + `layer3`) spatial patch feature extraction with an L2-normalized **Patch Memory Bank**, boosting `metal_nut` F1-score by **+29.28 percentage points** (64.43% → 93.71%).<br>• Inverse affine coordinate alignment (`-dx, -dy`) mapping centered predictions back to raw image pixel coordinates.<br>• Multi-criteria Out-of-Distribution (**OOD / `INVALID`**) guard rejecting non-target objects.<br>• Dark-themed **Streamlit HMI** with side-by-side method comparison, live Ground Truth IoU/Dice verification, and `.png`/`.json` traceability export. |
 
 ---
 
@@ -99,27 +99,35 @@ The platform was developed iteratively across three distinct architectural miles
 
 Evaluations were conducted across three industrial categories from the **MVTec Anomaly Detection** dataset (`bottle`, `metal_nut`, `hazelnut`), calibrated strictly on defect-free training samples.
 
-| Configuration | Paradigm | Category | F1-Score (%) | Latency (ms/image) | Throughput (FPS) |
-| :--- | :---: | :--- | :---: | :---: | :---: |
-| `bottle_cv` | Classical CIE LAB | Bottle (`bottle`) | 95.0%+ | ~16.2 ms | ~61.7 |
-| **`bottle_nn`** | **Hybrid ResNet-18** | **Bottle (`bottle`)** | **98.4%+** | **~24.5 ms** | **~40.8** |
-| `metal_nut_cv` | Classical CIE LAB | Metal Nut (`metal_nut`) | 64.43% | ~16.5 ms | ~60.6 |
-| **`metal_nut_nn`** | **Hybrid ResNet-18** | **Metal Nut (`metal_nut`)** | **93.71%** | **~27.8 ms** | **~36.0** |
-| `hazelnut_cv` | Classical CIE LAB | Hazelnut (`hazelnut`) | 89.8%+ | ~16.4 ms | ~61.0 |
-| **`hazelnut_nn`** | **Hybrid ResNet-18** | **Hazelnut (`hazelnut`)** | **94.0%+** | **~26.9 ms** | **~37.2** |
+| Configuration | Paradigm | Accuracy | Precision | Recall | F1-Score | Mean IoU | Latency (ms/img) | FPS |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `bottle_cv` | Classical CIE LAB | 90.36% | 92.31% | 95.24% | 93.75% | 25.24% | 30.00 | 33.3 |
+| **`bottle_nn`** | **Hybrid ResNet-18** | **97.59%** | **96.92%** | **100.00%** | **98.44%** | **48.40%** | **17.98** | **55.6** |
+| `metal_nut_cv` | Classical CIE LAB | 53.91% | 85.71% | 51.61% | 64.43% | 2.84% | 17.00 | 58.8 |
+| **`metal_nut_nn`** | **Hybrid ResNet-18** | **90.43%** | **100.00%** | **88.17%** | **93.71%** | **30.83%** | **16.50** | **60.6** |
+| `hazelnut_cv` | Classical CIE LAB | 71.82% | 77.46% | 78.57% | 78.01% | 12.41% | 35.95 | 27.8 |
+| **`hazelnut_nn`** | **Hybrid ResNet-18** | **91.82%** | **88.61%** | **100.00%** | **93.96%** | **26.49%** | **28.64** | **34.9** |
+
+> All values are taken directly from [`results/benchmark_summary.csv`](results/benchmark_summary.csv). Detection metrics (accuracy, precision, recall, F1, IoU) are deterministic and reproduce exactly on other machines. Latency and FPS were measured on the development machine and depend on the hardware: on a CPU-only laptop (Python 3.12, Windows) the hybrid track runs at ~124–191 ms per image (5–8 FPS).
 
 ### Key Engineering Takeaways
-* **Substantial Gain on Specular Metallic Surfaces:** While classical pixel differencing performs reliably on uniform backgrounds (`bottle`), metallic reflections and rotational variance in `metal_nut` degrade classical performance to `64.43%` F1. The hybrid patch memory bank achieves **`93.71%` F1** (**+29.28% improvement**).
-* **Real-Time Conveyor Throughput:** Running at **~25–28 ms per frame (36–41 FPS)**, the hybrid pipeline satisfies real-time inline inspection constraints without sacrificing localization precision.
+* **Substantial Gain on Specular Metallic Surfaces:** While classical pixel differencing performs reliably on uniform backgrounds (`bottle`), metallic reflections and rotational variance in `metal_nut` degrade classical performance to `64.43%` F1. The hybrid patch memory bank achieves **`93.71%` F1** (**+29.28 percentage points**) and raises localization IoU from `2.84%` to `30.83%`.
+* **Consistent Improvement Across All Categories:** Averaged over the three categories, the hybrid track reaches **95.37%** F1 versus **78.73%** for the classical track (**+16.64 percentage points**), with 100% recall on `bottle` and `hazelnut`.
+* **Throughput Depends on Hardware:** On the development machine the hybrid pipeline runs at **~17–29 ms per frame (35–61 FPS)**, fast enough for inline inspection. On CPU-only hardware throughput drops to 5–8 FPS, so a GPU is recommended for real-time conveyor deployment.
+* **Localization Remains the Main Open Challenge:** Image-level decisions are reliable, but pixel-level mean IoU stays between `26%` and `48%` for the hybrid track; defects are found in the right region but their exact boundaries are only partially recovered.
 
 ---
 
 ## 🔬 Empirical Failure Analysis & Trade-offs
 
 * **Sensitivity vs. False-Alarm Trade-off (`metal_nut / color / 004.png`):**
-  A micro-scale paint blemish along the inner bore of the metal nut registered an anomaly peak of `0.767` (exceeding the `0.72` threshold) and localized accurately on the heatmap. However, because its connected pixel area fell below `min_defect_area_px` (`120 px`) and was suppressed by morphological opening, the final classification returned `PASS`. Maintaining a conservative threshold (`0.72`) and minimum area filter prevents specular metallic glare on intact nuts from triggering false positives, stabilizing overall accuracy at **90.43%** while leaving sub-threshold micro-stains at the sensitivity boundary.
+  A micro-scale paint blemish along the inner bore of the metal nut registered an anomaly peak of `0.767` (exceeding the `0.76` threshold) and localized accurately on the heatmap. However, because its connected pixel area fell below `min_defect_area_px` (`120 px`) and was suppressed by morphological opening, the final classification returned `PASS`. Maintaining a conservative threshold (`0.76`) and minimum area filter prevents specular metallic glare on intact nuts from triggering false positives, stabilizing overall accuracy at **90.43%** while leaving sub-threshold micro-stains at the sensitivity boundary.
 * **Pixel-Exact Coordinate Alignment (`hazelnut / cut / 014.png`):**
   Centroid shifting during preprocessing initially introduced a `15–25 px` spatial offset between detected bounding boxes and raw defect locations. Incorporating `compute_centering_shift` and inverse `cv2.warpAffine` mapping eliminated this discrepancy across both tracks.
+* **False Alarms on Intact Hazelnuts (`hazelnut_nn`):**
+  The hybrid track catches every defective hazelnut (recall `100%`) but flags 9 of 40 defect-free test samples as `FAIL` (precision `88.61%`). The natural shape and texture variation of hazelnuts is wider than the training set covers; in a production setting this would mean intact products being rejected, so the threshold for this category trades false alarms for zero missed defects.
+* **Remaining Misses on `metal_nut`:**
+  The hybrid track detects all `bent`, `flip` and `good` samples correctly; its remaining errors concentrate in `scratch` (17/23) and `color` (17/22), where defects are small and visually close to normal metallic glare.
 
 ---
 
