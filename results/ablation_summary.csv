@@ -1,0 +1,5 @@
+method,accuracy_pct,precision_pct,recall_pct,specificity_pct,f1_pct,false_alarm_area_pct,tp,tn,fp,fn
+1. Global Threshold,75.9,75.9,100.0,0.0,86.3,62.49,63,0,20,0
+2. Canny + ROI,75.9,75.9,100.0,0.0,86.3,0.3,63,0,20,0
+3. Single Reference,77.11,76.83,100.0,5.0,86.9,2.11,63,1,19,0
+4. Mean + Std Model,89.16,89.71,96.83,65.0,93.13,0.03,61,13,7,2
