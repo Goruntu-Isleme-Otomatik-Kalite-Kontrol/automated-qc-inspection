@@ -4,6 +4,8 @@
 
 **Real-Time Surface Defect Detection & Industrial HMI Platform Combining Classical Statistical Computer Vision (CIE LAB) and Hybrid Deep Learning (Patch Memory Bank)**
 
+[![Tests](https://github.com/Goruntu-Isleme-Otomatik-Kalite-Kontrol/automated-qc-inspection/actions/workflows/tests.yml/badge.svg)](https://github.com/Goruntu-Isleme-Otomatik-Kalite-Kontrol/automated-qc-inspection/actions/workflows/tests.yml)
+
 **`Domain:`** Industrial Computer Vision &nbsp;|&nbsp; **`Dataset:`** MVTec Anomaly Detection &nbsp;|&nbsp; **`Architecture:`** CIE LAB + ResNet-18 &nbsp;|&nbsp; **`Interface:`** Streamlit HMI
 
 </div>
@@ -32,6 +34,8 @@ The platform was developed iteratively across three distinct architectural miles
 | **`v1.0.0`** | **Grayscale Statistical Baseline** | • Single-channel pixel mean and standard deviation ($\mu \pm k\sigma$) reference modeling.<br>• Otsu automatic background segmentation and morphological noise suppression (`cv2.MORPH_OPEN` / `MORPH_ELLIPSE`).<br>• Core `pytest` unit test suite and CLI evaluation baseline. |
 | **`v1.1.0`** | **Multi-Channel CIE LAB Color Modeling** | • Migration from single-channel grayscale to 3-channel **CIE LAB** color space to decouple luminance (L<sup>&#42;</sup>) fluctuations from chromatic (a<sup>&#42;</sup>, b<sup>&#42;</sup>) surface defects.<br>• Modular YAML configuration architecture (`configs/*.yaml`) per product category.<br>• Full-dataset evaluation pipeline generating F1-score, IoU, and throughput metrics. |
 | **`v2.0.0`** | **Hybrid ResNet-18 & Industrial HMI** | • Integration of pre-trained **ResNet-18** (`layer2` + `layer3`) spatial patch feature extraction with an L2-normalized **Patch Memory Bank**, boosting `metal_nut` F1-score by **+29.28 percentage points** (64.43% → 93.71%).<br>• Inverse affine coordinate alignment (`-dx, -dy`) mapping centered predictions back to raw image pixel coordinates.<br>• Multi-criteria Out-of-Distribution (**OOD / `INVALID`**) guard rejecting non-target objects.<br>• Dark-themed **Streamlit HMI** with side-by-side method comparison, live Ground Truth IoU/Dice verification, and `.png`/`.json` traceability export. |
+
+> The configurations of the earlier milestones are kept in the repository for reproducibility: `configs/default.yaml` is the **v1.0** grayscale baseline and `configs/color_lab.yaml` the **v1.1** CIE LAB baseline (both on `bottle`). Each can be re-evaluated with `python -m src.evaluate --config <file>`.
 
 ---
 
@@ -115,6 +119,32 @@ Evaluations were conducted across three industrial categories from the **MVTec A
 * **Consistent Improvement Across All Categories:** Averaged over the three categories, the hybrid track reaches **95.37%** F1 versus **78.73%** for the classical track (**+16.64 percentage points**), with 100% recall on `bottle` and `hazelnut`.
 * **Throughput Depends on Hardware:** On the development machine the hybrid pipeline runs at **~17–29 ms per frame (35–61 FPS)**, fast enough for inline inspection. On CPU-only hardware throughput drops to 5–8 FPS, so a GPU is recommended for real-time conveyor deployment.
 * **Localization Remains the Main Open Challenge:** Image-level decisions are reliable, but pixel-level mean IoU stays between `26%` and `48%` for the hybrid track; defects are found in the right region but their exact boundaries are only partially recovered.
+
+---
+
+## 🧪 Ablation Study: Why a Statistical Reference Model?
+
+Before settling on the per-pixel statistical model of the classical track, four classical approaches were compared on the same aligned `bottle` images (`experiments/ablation_study.py`). Pixels flagged as defective are highlighted in red:
+
+| # | Method | Result | Reason |
+| :---: | :--- | :---: | :--- |
+| 1 | Global thresholding | ❌ | The dark bottle body itself falls below the threshold, so almost the entire object is flagged. |
+| 2 | Canny edges inside a circular ROI | ❌ | Concentric neck rings and specular reflections produce edges on intact bottles. |
+| 3 | Difference to a single reference image | ❌ | Small rotational differences between bottles create crescent-shaped false alarms along the rim. |
+| 4 | Per-pixel mean + std reference model | ✅ | An adaptive tolerance (`2.8·σ + 25`) absorbs natural variation and flags only the true defect. |
+
+**Defective sample (`fail_01.png`):**
+
+![Ablation on a defective bottle](docs/images/ablation_fail_01.png)
+
+**Defect-free sample (`pass_02.png`):**
+
+![Ablation on a defect-free bottle](docs/images/ablation_pass_02.png)
+
+Reproduce the figures with:
+```bash
+python -m experiments.ablation_study
+```
 
 ---
 
@@ -223,16 +253,25 @@ streamlit run app.py
 
 > On the very first launch Streamlit may ask for an e-mail address in the terminal; press **Enter** to skip.
 
+### 6. Command-Line Inspection (optional)
+```bash
+# Inspects the config's input_dir (data/golden_set by default) and prints PASS / FAIL per image
+python main.py
+python main.py --config configs/bottle_nn.yaml
+```
+
 ---
 
 ## 📂 Repository Structure
 
 ```text
+├── .github/
+│   └── workflows/tests.yml     # CI: runs the pytest suite on every push and pull request
 ├── .streamlit/
 │   └── config.toml             # Industrial dark theme configuration
 ├── configs/
-│   ├── default.yaml            # Default configuration (used when no --config is given)
-│   ├── color_lab.yaml          # Generic CIE LAB statistical configuration
+│   ├── default.yaml            # v1.0 grayscale baseline (bottle); default when no --config is given
+│   ├── color_lab.yaml          # v1.1 CIE LAB baseline (bottle)
 │   ├── bottle_cv.yaml          # Bottle — Classical CIE LAB configuration
 │   ├── bottle_nn.yaml          # Bottle — Hybrid ResNet-18 configuration
 │   ├── metal_nut_cv.yaml       # Metal Nut — Classical CIE LAB configuration
@@ -246,8 +285,8 @@ streamlit run app.py
 ├── docs/
 │   └── images/                 # Figures used in the documentation (ablation study)
 ├── experiments/
-│   └── ablation_study.py       # Ablation study script
-├── outputs/                    # Precomputed statistical reference models (.npz)
+│   └── ablation_study.py       # Ablation study comparing four classical methods
+├── outputs/                    # Reference caches of the v1.0 / v1.1 baselines (.npz)
 ├── results/
 │   └── benchmark_summary.csv   # 6-way benchmark summary written by `src.evaluate --all`
 ├── src/
@@ -261,9 +300,10 @@ streamlit run app.py
 │   └── evaluate.py             # Multi-configuration benchmark & metrics pipeline
 ├── tests/
 │   ├── test_pipeline.py        # End-to-end golden-set safety & artifact test
-│   └── test_preprocessing.py   # Preprocessing shape, LAB & centroid alignment tests
+│   ├── test_preprocessing.py   # Preprocessing shape, LAB & centroid alignment tests
+│   └── test_nn_detector.py     # ResNet-18 patch extraction, memory bank & detection tests
 ├── app.py                      # Streamlit HMI diagnostic application
-├── main.py                     # Command-line inspection entry point
+├── main.py                     # Command-line inspection (prints PASS / FAIL per image)
 ├── pytest.ini                  # pytest configuration
 ├── requirements.txt            # Project dependencies
 ├── .mailmap                    # Unifies commit author identities
