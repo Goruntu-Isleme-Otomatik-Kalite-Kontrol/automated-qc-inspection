@@ -13,3 +13,7 @@ streamlit>=1.36.0
 
 # Testing
 pytest>=8.0
+
+
+# Experiments & figures
+matplotlib>=3.7

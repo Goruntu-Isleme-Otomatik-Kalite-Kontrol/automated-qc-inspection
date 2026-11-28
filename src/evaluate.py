@@ -142,6 +142,7 @@ def evaluate_full_dataset(config_path: str = "configs/default.yaml") -> dict:
 
     return {
         "config": config_path,
+        "category_stats": category_stats,
         "accuracy": accuracy,
         "precision": precision,
         "recall": recall,

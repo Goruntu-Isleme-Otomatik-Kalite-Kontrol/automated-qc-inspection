@@ -1,0 +1,7 @@
+category,color_space,accuracy_pct,precision_pct,recall_pct,f1_pct,mean_iou_pct,latency_ms
+bottle,gray,90.36,92.31,95.24,93.75,23.31,8.07
+bottle,lab,90.36,92.31,95.24,93.75,25.24,27.87
+metal_nut,gray,52.17,85.19,49.46,62.59,2.15,4.75
+metal_nut,lab,53.91,85.71,51.61,64.43,2.84,16.95
+hazelnut,gray,72.73,80.3,75.71,77.94,13.41,11.84
+hazelnut,lab,71.82,77.46,78.57,78.01,12.41,37.12
