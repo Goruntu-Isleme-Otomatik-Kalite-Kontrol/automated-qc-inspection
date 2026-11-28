@@ -35,7 +35,7 @@ The platform was developed iteratively across three distinct architectural miles
 | **`v1.1.0`** | **Multi-Channel CIE LAB Color Modeling** | • Migration from single-channel grayscale to 3-channel **CIE LAB** color space to decouple luminance (L<sup>&#42;</sup>) fluctuations from chromatic (a<sup>&#42;</sup>, b<sup>&#42;</sup>) surface defects.<br>• Modular YAML configuration architecture (`configs/*.yaml`) per product category.<br>• Full-dataset evaluation pipeline generating F1-score, IoU, and throughput metrics. |
 | **`v2.0.0`** | **Hybrid ResNet-18 & Industrial HMI** | • Integration of pre-trained **ResNet-18** (`layer2` + `layer3`) spatial patch feature extraction with an L2-normalized **Patch Memory Bank**, boosting `metal_nut` F1-score by **+29.28 percentage points** (64.43% → 93.71%).<br>• Inverse affine coordinate alignment (`-dx, -dy`) mapping centered predictions back to raw image pixel coordinates.<br>• Multi-criteria Out-of-Distribution (**OOD / `INVALID`**) guard rejecting non-target objects.<br>• Dark-themed **Streamlit HMI** with side-by-side method comparison, live Ground Truth IoU/Dice verification, and `.png`/`.json` traceability export. |
 
-> The configurations of the earlier milestones are kept in the repository for reproducibility: `configs/default.yaml` is the **v1.0** grayscale baseline and `configs/color_lab.yaml` the **v1.1** CIE LAB baseline (both on `bottle`). Each can be re-evaluated with `python -m src.evaluate --config <file>`.
+> v1.0 and v1.1 were committed together with the initial project structure, so they do not appear as separate tags in the Git history. Their configurations are kept in the repository for reproducibility: `configs/default.yaml` is the **v1.0** grayscale baseline and `configs/color_lab.yaml` the **v1.1** CIE LAB baseline (both on `bottle`). Each can be re-evaluated with `python -m src.evaluate --config <file>`.
 
 ---
 
@@ -162,6 +162,33 @@ To verify that the visual impression holds beyond two samples, all four methods 
 Reproduce the figures and the table (written to `results/ablation_summary.csv`) with:
 ```bash
 python -m experiments.ablation_study
+```
+
+---
+
+## 🎨 Experiment: Grayscale vs. CIE LAB
+
+The v1.1 milestone moved the classical track from grayscale to the CIE LAB color space to better separate luminance changes from color defects. To measure whether this pays off, the classical configuration of each category was evaluated twice (`experiments/color_space_comparison.py`). Only the color space changes between the two runs; every other parameter is identical.
+
+| Category | Color Space | Accuracy | F1-Score | Mean IoU | Latency (ms/img) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| `bottle` | Gray | 90.36% | 93.75% | 23.31% | 8.07 |
+| `bottle` | LAB | 90.36% | 93.75% | 25.24% | 27.87 |
+| `metal_nut` | Gray | 52.17% | 62.59% | 2.15% | 4.75 |
+| `metal_nut` | LAB | 53.91% | 64.43% | 2.84% | 16.95 |
+| `hazelnut` | Gray | 72.73% | 77.94% | 13.41% | 11.84 |
+| `hazelnut` | LAB | 71.82% | 78.01% | 12.41% | 37.12 |
+
+![Grayscale vs. CIE LAB per defect type](docs/images/color_space_comparison.png)
+
+* **Overall, LAB changes the F1-score by less than 2 percentage points** in every category, while making the classical track roughly 3–4× slower (latency measured on a CPU-only laptop).
+* **The benefit appears exactly where it is expected – on color defects.** `metal_nut / color` improves from 54.5% to 63.6% correctly classified, and `hazelnut / hole` from 66.7% to 77.8%.
+* **Structural defects gain nothing.** `bottle` results are identical, and on `hazelnut` LAB even raises more false alarms on intact samples (`good`: 67.5% → 60.0%).
+* **Neither color space solves `metal_nut / scratch`** (8.7% vs. 13.0%), which is one of the main reasons for introducing the hybrid ResNet-18 track.
+
+Reproduce the table, the per-defect CSV files in `results/` and the figure with:
+```bash
+python -m experiments.color_space_comparison
 ```
 
 ---
@@ -303,10 +330,13 @@ python main.py --config configs/bottle_nn.yaml
 ├── docs/
 │   └── images/                 # Figures used in the documentation (ablation study)
 ├── experiments/
-│   └── ablation_study.py       # Ablation study comparing four classical methods
+│   ├── ablation_study.py       # Ablation study comparing four classical methods
+│   └── color_space_comparison.py # Grayscale vs. CIE LAB experiment for the classical track
 ├── outputs/                    # Reference caches of the v1.0 / v1.1 baselines (.npz)
 ├── results/
 │   ├── ablation_summary.csv    # Quantitative ablation results written by `experiments.ablation_study`
+│   ├── color_space_summary.csv # Grayscale vs. LAB results per category
+│   ├── color_space_per_defect.csv # Grayscale vs. LAB results per defect type
 │   └── benchmark_summary.csv   # 6-way benchmark summary written by `src.evaluate --all`
 ├── src/
 │   ├── __init__.py             # Package initialization
