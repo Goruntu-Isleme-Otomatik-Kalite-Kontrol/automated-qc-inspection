@@ -62,6 +62,7 @@ def evaluate_full_dataset(config_path: str = "configs/default.yaml") -> dict:
 
         category = category_dir.name
         is_ground_truth_defect = category != "good"
+        print(f"[{Path(config_path).stem}] Kategori işleniyor: {category} ...", flush=True)
         details = run_pipeline(
             config_path=config_path,
             input_dir_override=str(category_dir),
@@ -174,7 +175,8 @@ def run_benchmark_suite(
     configs = config_paths or DEFAULT_BENCHMARK_CONFIGS
     summary_rows = []
 
-    for cfg_path in configs:
+    for i, cfg_path in enumerate(configs, start=1):
+        print(f"\n[{i}/{len(configs)}] Benchmark çalıştırılıyor: {cfg_path}", flush=True)
         if not Path(cfg_path).exists():
             print(f"[SKIP] Config not found: {cfg_path}")
             continue
