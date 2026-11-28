@@ -141,7 +141,25 @@ Before settling on the per-pixel statistical model of the classical track, four 
 
 ![Ablation on a defect-free bottle](docs/images/ablation_pass_02.png)
 
-Reproduce the figures with:
+### Quantitative Results on the Full `bottle` Test Set
+
+To verify that the visual impression holds beyond two samples, all four methods were run on the complete `bottle` test set (63 defective, 20 defect-free images) with the same decision rule: an image is classified as `FAIL` when at least 150 pixels are flagged.
+
+| Method | Accuracy | Precision | Recall | Specificity | F1-Score | False-Alarm Area |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| 1. Global threshold | 75.90% | 75.90% | 100.00% | 0.00% | 86.30% | 62.49% |
+| 2. Canny + ROI | 75.90% | 75.90% | 100.00% | 0.00% | 86.30% | 0.30% |
+| 3. Single reference | 77.11% | 76.83% | 100.00% | 5.00% | 86.90% | 2.11% |
+| **4. Mean + std model** | **89.16%** | **89.71%** | **96.83%** | **65.00%** | **93.13%** | **0.03%** |
+
+*Specificity: share of defect-free bottles correctly classified as `PASS`. False-alarm area: average share of a defect-free bottle's pixels that are wrongly flagged.*
+
+* **F1 alone is misleading on this test set.** Methods 1–3 classify (almost) every bottle as defective, which yields 100% recall and an F1-score of ~86% purely because defective images outnumber defect-free ones 63 to 20. Their specificity of 0–5% shows that they cannot recognize an intact bottle at all.
+* **Only the statistical model separates the two classes**, with 65% specificity and a false-alarm area of just 0.03% of the image.
+* **Remaining limitation:** even the statistical model still raises an alarm on 7 of 20 intact bottles, which motivated the hybrid ResNet-18 track (2 of 20 on the same test set).
+* The F1-score of method 4 (93.13%) differs slightly from the v1.0 baseline evaluated with `src.evaluate` (93.85%) because the production pipeline applies the area threshold per connected defect region instead of to the total number of flagged pixels.
+
+Reproduce the figures and the table (written to `results/ablation_summary.csv`) with:
 ```bash
 python -m experiments.ablation_study
 ```
@@ -288,6 +306,7 @@ python main.py --config configs/bottle_nn.yaml
 │   └── ablation_study.py       # Ablation study comparing four classical methods
 ├── outputs/                    # Reference caches of the v1.0 / v1.1 baselines (.npz)
 ├── results/
+│   ├── ablation_summary.csv    # Quantitative ablation results written by `experiments.ablation_study`
 │   └── benchmark_summary.csv   # 6-way benchmark summary written by `src.evaluate --all`
 ├── src/
 │   ├── __init__.py             # Package initialization
