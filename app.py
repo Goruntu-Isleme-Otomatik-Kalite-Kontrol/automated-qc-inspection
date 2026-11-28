@@ -650,7 +650,7 @@ with tab_benchmark:
             st.markdown("**F1-Score (%) ve Piksel IoU (%) Karşılaştırması**")
             chart_df = df.set_index("config")[["f1_pct", "mean_iou_pct"]]
             chart_df.columns = ["F1-Score (%)", "Mean IoU (%)"]
-            st.bar_chart(chart_df)
+            st.bar_chart(chart_df, stack=False)
         with c2:
             st.markdown("**İşlem Hızı Karşılaştırması (FPS)**")
             fps_df = df.set_index("config")[["fps"]]
