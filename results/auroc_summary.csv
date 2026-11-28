@@ -1,0 +1,7 @@
+config,score,auroc_pct
+bottle_cv,defect area (px),96.47
+bottle_nn,peak anomaly score,100.0
+metal_nut_cv,defect area (px),57.58
+metal_nut_nn,peak anomaly score,99.66
+hazelnut_cv,defect area (px),73.79
+hazelnut_nn,peak anomaly score,99.96
