@@ -193,6 +193,46 @@ python -m experiments.color_space_comparison
 
 ---
 
+## 📈 Score Analysis: AUROC, Threshold Sensitivity & Confusion Matrices
+
+`experiments/score_analysis.py` assigns every test image a single anomaly score (hybrid track: peak of the anomaly heatmap; classical track: area of the detected defect regions) and analyzes how well these scores separate defective from defect-free images.
+
+### Image-Level AUROC
+
+AUROC is the standard image-level metric on MVTec AD. It is independent of any threshold: it measures the probability that a randomly chosen defective image receives a higher anomaly score than a randomly chosen defect-free one (100% = perfect separation, 50% = random guessing).
+
+| Category | Classical CIE LAB (AUROC) | Hybrid ResNet-18 (AUROC) | Hybrid F1-Score |
+| :--- | :---: | :---: | :---: |
+| `bottle` | 96.47% | **100.00%** | 98.44% |
+| `metal_nut` | 57.58% | **99.66%** | 93.71% |
+| `hazelnut` | 73.79% | **99.96%** | 93.96% |
+
+* **The hybrid features separate the two classes almost perfectly** (AUROC ≥ 99.66% in all categories). The remaining F1 gap is therefore not caused by the features but by the decision rule: the anomaly threshold and the minimum defect area.
+* **The classical track is close to random guessing on `metal_nut`** (57.58%): no choice of threshold can make it work on specular metallic surfaces.
+
+### Threshold Sensitivity
+
+![F1-score vs. anomaly threshold](docs/images/threshold_sweep.png)
+
+* All three categories show a **wide, flat F1 plateau**, so the hybrid track is robust to the exact threshold value.
+* The configured threshold for `metal_nut` (0.76) lies on the plateau. For `hazelnut` (0.72) and `bottle` (0.50) it lies left of the plateau, i.e. on the over-sensitive side, which explains the false alarms on intact hazelnuts.
+* The curves use a score-only decision without the minimum-area filter of the production pipeline, so their F1 values are not identical to the benchmark table.
+* **The thresholds in `configs/` were intentionally *not* re-tuned to the best points of these curves.** Those points are found on the test set; selecting the threshold there would leak test information into the model and overstate its real-world performance.
+
+### Confusion Matrices
+
+![Confusion matrices of all six configurations](docs/images/confusion_matrices.png)
+
+* **The hybrid track fails in opposite directions on the two hardest categories:** on `metal_nut` it never raises a false alarm but misses 11 defects (conservative), on `hazelnut` it never misses a defect but raises 9 false alarms (over-sensitive). This matches the position of the configured thresholds on the curves above.
+* **The classical track lets 45 of 93 defective metal nuts pass**, which in production would mean shipping almost every second defective part.
+
+Reproduce the AUROC table (`results/auroc_summary.csv`) and both figures with:
+```bash
+python -m experiments.score_analysis
+```
+
+---
+
 ## 🔬 Empirical Failure Analysis & Trade-offs
 
 * **Sensitivity vs. False-Alarm Trade-off (`metal_nut / color / 004.png`):**
@@ -331,10 +371,12 @@ python main.py --config configs/bottle_nn.yaml
 │   └── images/                 # Figures used in the documentation (ablation study)
 ├── experiments/
 │   ├── ablation_study.py       # Ablation study comparing four classical methods
-│   └── color_space_comparison.py # Grayscale vs. CIE LAB experiment for the classical track
+│   ├── color_space_comparison.py # Grayscale vs. CIE LAB experiment for the classical track
+│   └── score_analysis.py       # AUROC, threshold sensitivity & confusion matrix figures
 ├── outputs/                    # Reference caches of the v1.0 / v1.1 baselines (.npz)
 ├── results/
 │   ├── ablation_summary.csv    # Quantitative ablation results written by `experiments.ablation_study`
+│   ├── auroc_summary.csv       # Image-level AUROC per configuration
 │   ├── color_space_summary.csv # Grayscale vs. LAB results per category
 │   ├── color_space_per_defect.csv # Grayscale vs. LAB results per defect type
 │   └── benchmark_summary.csv   # 6-way benchmark summary written by `src.evaluate --all`
