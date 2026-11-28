@@ -347,6 +347,59 @@ python main.py --config configs/bottle_nn.yaml
 
 ---
 
+## 🧭 HMI User Guide
+
+After `streamlit run app.py` the dashboard opens in the browser. The interface language is Turkish; the labels below are given as they appear on screen.
+
+### 1. Configure the Inspection (left sidebar)
+
+| Control | Purpose |
+| :--- | :--- |
+| **1. Ürün Kategorisi** | Product to inspect: `bottle`, `metal_nut` or `hazelnut`. Loads the matching reference model. |
+| **İki Yöntemi Yan Yana Karşılaştır** | Runs the classical and the hybrid track on the same image and shows both results one below the other. |
+| **2. Denetim Yöntemi** | Track used in single-method mode: classical CIE LAB or hybrid ResNet-18. |
+| **Anomali Eşik Değeri / Klasik CV Eşiği** | Decision thresholds of the hybrid track (`anomaly_threshold`) and the classical track (`std_multiplier`). Lower values make the system more sensitive. The change applies to the current session only; the YAML configs are not modified. |
+| **Isı Haritası Saydamlığı (Alpha)** | Opacity of the heatmap overlay (`0.0` – `1.0`). |
+| **3. Görüntü Kaynağı** | Either pick an MVTec test image by defect type and file name, or upload your own PNG / JPG. |
+
+### 2. Read the Result
+
+![Single-method inspection of a defective bottle](docs/images/hmi_inspection.png)
+
+* **Status banner and decision card:** `PASS` (no defect), `FAIL` (at least one defect region) or `INVALID` (the image does not show the selected product, see below).
+* **Metric cards:** number of detected defect regions, peak anomaly score, processing time and – for MVTec test images only, where a ground-truth mask exists – the pixel-level IoU / Dice against that mask.
+* **Four panels, left to right:**
+  1. original input image;
+  2. anomaly heatmap (blue = normal texture, yellow = borderline, red = high anomaly);
+  3. final decision with red bounding boxes around the detected defects;
+  4. ground-truth defect mask in green (MVTec test images only), for a visual check of the localization.
+
+> The peak anomaly scores of the two tracks are on different scales (hybrid: patch distance of roughly 0 – 1; classical: deviation from the reference model in color units), so they are only comparable within the same track.
+
+### 3. Compare Both Methods
+
+![Hybrid and classical track on the same metal nut](docs/images/hmi_side_by_side.png)
+
+With **İki Yöntemi Yan Yana Karşılaştır** enabled, both tracks inspect the same image. In the example above (`metal_nut / bent / 000.png`) both tracks report `FAIL`, but only the hybrid track places its boxes on the true defects; the classical boxes lie elsewhere on the part (IoU 0%). The comparison therefore shows not only *whether* a method is right, but *why*.
+
+### 4. Out-of-Distribution Guard (`INVALID`)
+
+![An unrelated image rejected as INVALID](docs/images/hmi_invalid.png)
+
+If an uploaded image does not show the selected product, the system does not force a `PASS` / `FAIL` decision. It reports `INVALID` together with the reason (e.g. foreign-area ratio) and asks for a suitable product image.
+
+### 5. Export the Result
+
+Below the panels, **İşaretli Görseli İndir (.png)** downloads the annotated image and **Denetim Kaydını İndir (.json)** a timestamped inspection log with bounding boxes, scores and latency for traceability.
+
+### 6. Benchmark Tab
+
+![6-way benchmark tab](docs/images/hmi_benchmark.png)
+
+The **6 Yönlü Benchmark Raporu** tab reads `results/benchmark_summary.csv` and shows the average hybrid vs. classical F1-score, the full metric table and two charts (F1 / IoU and throughput). Running `python -m src.evaluate --all` regenerates the CSV with the values of the current machine.
+
+---
+
 ## 📂 Repository Structure
 
 ```text
@@ -368,7 +421,7 @@ python main.py --config configs/bottle_nn.yaml
 │   ├── raw/                    # MVTec AD categories (downloaded manually, not versioned)
 │   └── cache/                  # Memory banks & reference caches generated at runtime
 ├── docs/
-│   └── images/                 # Figures used in the documentation (ablation study)
+│   └── images/                 # Figures, experiment plots and HMI screenshots used in this README
 ├── experiments/
 │   ├── ablation_study.py       # Ablation study comparing four classical methods
 │   ├── color_space_comparison.py # Grayscale vs. CIE LAB experiment for the classical track
