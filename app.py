@@ -637,7 +637,7 @@ with tab_benchmark:
         avg_nn_iou = float(nn_df["mean_iou_pct"].mean()) if not nn_df.empty else 0.0
 
         k1, k2, k3, k4 = st.columns(4)
-        k1.metric("Ortalama Hibrit F1", f"%{avg_nn_f1:.2f}", delta=f"+%{f1_gain:.2f} Klasik CV'ye göre")
+        k1.metric("Ortalama Hibrit F1", f"%{avg_nn_f1:.2f}", delta=f"+{f1_gain:.2f} puan (Klasik CV'ye göre)")
         k2.metric("Ortalama Klasik CV F1", f"%{avg_cv_f1:.2f}")
         k3.metric("Ortalama Piksel IoU (Hibrit)", f"%{avg_nn_iou:.2f}")
         k4.metric("Ortalama Hibrit Hız", f"{avg_nn_fps:.1f} FPS")
