@@ -137,27 +137,83 @@ The Streamlit diagnostic workstation (`app.py`) provides an operator-ready inspe
 
 ## ⚡ Installation & Usage
 
-### 1. Environment Setup
+> **Requirements:** Python 3.11 or 3.12 (tested with Python 3.12 on Windows, CPU only). Newer interpreters such as Python 3.14 have not been verified yet.
+
+### 1. Clone the Repository & Create a Virtual Environment
 ```bash
-git clone [https://github.com/UygarHfz/Goruntu-Isleme-Otomatik-Kalite-Kontrol.git](https://github.com/UygarHfz/Goruntu-Isleme-Otomatik-Kalite-Kontrol.git)
-cd Goruntu-Isleme-Otomatik-Kalite-Kontrol
+git clone https://github.com/Goruntu-Isleme-Otomatik-Kalite-Kontrol/automated-qc-inspection.git
+cd automated-qc-inspection
+python -m venv .venv
+```
+
+Activate the environment:
+```bash
+# Windows (PowerShell)
+.venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+Install the dependencies:
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Run Automated Verification Tests
+> `opencv-python-headless` is used intentionally so the project also runs in headless environments (GitHub Codespaces, CI runners, Docker) that do not provide `libGL`.
+
+### 2. Download the MVTec AD Dataset
+The dataset is **not included** in this repository because of its size and license. Download the following three categories from the [official MVTec AD download page](https://www.mvtec.com/company/research/datasets/mvtec-ad/downloads):
+
+| Category | Archive | Size |
+| :--- | :--- | :---: |
+| Bottle | `bottle.tar.xz` | ~149 MB |
+| Hazelnut | `hazelnut.tar.xz` | ~589 MB |
+| Metal Nut | `metal_nut.tar.xz` | ~158 MB |
+
+Place the three archives in `data/raw/` and extract them (this Python command works on every operating system):
 ```bash
-pytest -v
+mkdir -p data/raw
+cd data/raw
+python -c "import tarfile; [tarfile.open(f'{c}.tar.xz').extractall(filter='data') for c in ('bottle', 'hazelnut', 'metal_nut')]"
+cd ../..
 ```
 
-### 3. Generate Reference Caches & 6-Way Benchmark Report
+The resulting layout must look like this:
+```text
+data/raw/
+├── bottle/
+│   ├── train/good/
+│   ├── test/
+│   └── ground_truth/
+├── hazelnut/
+└── metal_nut/
+```
+
+> `data/raw/` is excluded from version control via `.gitignore`. MVTec AD is distributed under the CC BY-NC-SA 4.0 license (non-commercial use only).
+
+### 3. Run Automated Verification Tests
 ```bash
+python -m pytest -v
+```
+
+### 4. Generate Reference Caches & 6-Way Benchmark Report
+```bash
+# All six configurations (writes results/benchmark_summary.csv)
 python -m src.evaluate --all
+
+# A single configuration
+python -m src.evaluate --config configs/bottle_cv.yaml
 ```
 
-### 4. Launch the Industrial HMI Dashboard
+> The first run downloads the ImageNet-pretrained ResNet-18 weights (~45 MB). On a CPU-only machine the full benchmark takes several minutes. Latency and FPS values depend on the hardware; running `--all` overwrites the committed summary CSV.
+
+### 5. Launch the Industrial HMI Dashboard
 ```bash
 streamlit run app.py
 ```
+
+> On the very first launch Streamlit may ask for an e-mail address in the terminal; press **Enter** to skip.
 
 ---
 
@@ -167,12 +223,25 @@ streamlit run app.py
 ├── .streamlit/
 │   └── config.toml             # Industrial dark theme configuration
 ├── configs/
+│   ├── default.yaml            # Default configuration (used when no --config is given)
+│   ├── color_lab.yaml          # Generic CIE LAB statistical configuration
 │   ├── bottle_cv.yaml          # Bottle — Classical CIE LAB configuration
 │   ├── bottle_nn.yaml          # Bottle — Hybrid ResNet-18 configuration
 │   ├── metal_nut_cv.yaml       # Metal Nut — Classical CIE LAB configuration
 │   ├── metal_nut_nn.yaml       # Metal Nut — Hybrid ResNet-18 configuration
 │   ├── hazelnut_cv.yaml        # Hazelnut — Classical CIE LAB configuration
 │   └── hazelnut_nn.yaml        # Hazelnut — Hybrid ResNet-18 configuration
+├── data/
+│   ├── golden_set/             # 8 reference images (4 PASS / 4 FAIL) used by the test suite
+│   ├── raw/                    # MVTec AD categories (downloaded manually, not versioned)
+│   └── cache/                  # Memory banks & reference caches generated at runtime
+├── docs/
+│   └── images/                 # Figures used in the documentation (ablation study)
+├── experiments/
+│   └── ablation_study.py       # Ablation study script
+├── outputs/                    # Precomputed statistical reference models (.npz)
+├── results/
+│   └── benchmark_summary.csv   # 6-way benchmark summary written by `src.evaluate --all`
 ├── src/
 │   ├── __init__.py             # Package initialization
 │   ├── acquisition.py          # Image loading & dataset input ingestion
@@ -182,9 +251,13 @@ streamlit run app.py
 │   ├── postprocessing.py       # Morphological filtering, contour extraction & inverse alignment
 │   ├── pipeline.py             # End-to-end inspection orchestrator & PASS/FAIL decision logic
 │   └── evaluate.py             # Multi-configuration benchmark & metrics pipeline
-├── tests/                      # Automated unit & integration test suite
-├── results/                    # Benchmark CSV summaries & reference caches
+├── tests/
+│   ├── test_pipeline.py        # End-to-end golden-set safety & artifact test
+│   └── test_preprocessing.py   # Preprocessing shape, LAB & centroid alignment tests
 ├── app.py                      # Streamlit HMI diagnostic application
+├── main.py                     # Command-line inspection entry point
+├── pytest.ini                  # pytest configuration
 ├── requirements.txt            # Project dependencies
+├── .mailmap                    # Unifies commit author identities
 └── README.md                   # Project documentation
 ```
